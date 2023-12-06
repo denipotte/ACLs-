@@ -370,3 +370,123 @@
 
                 R1(config)# ip access-list extended NO-FTP-ACCESS
                 R1(config-ext-nacl)# 
+
+            
+            Exemplo de ACL IPv4 estendida## nomeada
+
+                As ACLs estendidas nomeadas são criadas essencialmente da mesma forma que as ACL padrão.
+
+                A topologia na figura é usada para demonstrar a configuração e aplicação de duas ACLs IPv4 estendidas nomeadas a uma interface:
+
+                SURF - Isso permitirá que o tráfego dentro de HTTP e HTTPS saia para a internet.
+                NAVEGAÇÃO - Isso só permitirá retornar tráfego da Web para os hosts internos enquanto todo o tráfego que sai da interface R1 G0/0/0 é negado implicitamente.
+
+         ![Alt text](image-3.png)       
+
+         O exemplo mostra a configuração para a ACL de SURFING de entrada e a ACL de BROWSING de saída.
+
+            A ACL SURFING permite que o tráfego HTTP e HTTPS de usuários internos saia da interface G0/0/1 conectada à Internet. O tráfego da Web retornando da Internet é permitido de volta para a rede privada interna pela ACL BROWSING.
+
+            A ACL SURFING é aplicada de entrada e a ACL BROWSING aplicada de saída na interface R1 G0/0/0/0, conforme mostrado na saída.
+
+            Os hosts internos têm acessado os recursos da web seguros a partir da internet. The show access-lists é usado para verificar as estatísticas de ACL. Observe que os contadores HTTPS seguros de permissão (ou seja, eq 443) na ACL SURFF e os contadores estabelecidos de retorno na ACL BROWSING aumentaram.
+
+            R1(config)# ip access-list extended SURFING
+            R1(config-ext-nacl)# Remark Permits inside HTTP and HTTPS traffic 
+            R1(config-ext-nacl)# permit tcp 192.168.10.0 0.0.0.255 any eq 80
+            R1(config-ext-nacl)# permit tcp 192.168.10.0 0.0.0.255 any eq 443
+            R1(config-ext-nacl)# exit
+            R1(config)# 
+            R1(config)# ip access-list extended BROWSING
+            R1(config-ext-nacl)# Remark Only permit returning HTTP and HTTPS traffic 
+            R1(config-ext-nacl)# permit tcp any 192.168.10.0 0.0.0.255 established
+            R1(config-ext-nacl)# exit
+            R1(config)# interface g0/0/0
+            R1(config-if)# ip access-group SURFING in
+            R1(config-if)# ip access-group BROWSING out
+            R1(config-if)# end
+            R1# show access-lists
+            Extended IP access list SURFING
+                10 permit tcp 192.168.10.0 0.0.0.255 any eq www
+                20 permit tcp 192.168.10.0 0.0.0.255 any eq 443 (124 matches) 
+            Extended IP access list BROWSING
+                10 permit tcp any 192.168.10.0 0.0.0.255 established (369 matches) 
+            R1#
+
+
+        # Edição de ACLs estendidas
+
+                R1# show access-lists 
+                Extended IP access list BROWSING
+                    10 permit tcp any 192.168.10.0 0.0.0.255 established 
+                Extended IP access list SURFING
+                    10 permit tcp 19.168.10.0 0.0.0.255 any eq www
+                    20 permit tcp 192.168.10.0 0.0.0.255 any eq 443 
+                R1#
+
+
+                Repare que o número de sequência ACE 10 na ACL SURNF tem um endereço de redes IP de origem incorrecto.
+
+                Para corrigir esse erro usando números de seqüência, a instrução original é removida com o comando no sequence\ #_ e a instrução corrigida é adicionada substituindo a instrução original.
+
+                R1# configure terminal
+                R1(config)# ip access-list extended SURFING 
+                R1(config-ext-nacl)# no 10
+                R1(config-ext-nacl)# 10 permit tcp 192.168.10.0 0.0.0.255 any eq www
+                R1(config-ext-nacl)# end
+                A saída verifica a alteração de configuração usando o show access-lists comando.
+
+                R1# show access-lists 
+                Extended IP access list BROWSING
+                    10 permit tcp any 192.168.10.0 0.0.0.255 established 
+                Extended IP access list SURFING
+                    10 permit tcp 192.168.10.0 0.0.0.255 any eq www 
+                    20 permit tcp 192.168.10.0 0.0.0.255 any eq 443
+                R1#  
+
+                -----------------------OUTRO EXEMPLO DE ACL ESTENDIDA NOMEADA-----------------------------
+
+                A figura mostra outro cenário para implementar uma ACL IPv4 estendida nomeada. Suponha que PC1 na rede privada interna é permitido FTP, SSH, Telnet, DNS, HTTP e tráfego HTTPS. No entanto, todos os outros usuários na rede privada interna devem ter acesso negado.
+
+                    Duas ACLs estendidas nomeadas serão criadas:
+
+                    Permit-PC1 - Isso permitirá apenas o acesso PC1 TCP à Internet e negar todos os outros hosts na rede privada.
+                    REPLY-PC1 - Isso permitirá somente o tráfego TCP especificado retornando para PC1 implicitamente negar todo o outro tráfego.
+
+                    ![Alt text](image-4.png)
+
+                    O exemplo mostra a configuração para a ACL de entrada PERMIT-PC1 e o REPLY-PC1 de saída.
+
+                        A PERMIT-PC1 ACL permite PC1 (ou seja, 192.168.10.10) acesso TCP ao tráfego FTP (ou seja, portas 20 e 21), SSH (22), Telnet (23), DNS (53), HTTP (80) e HTTPS (443).
+
+                        A REPLY-PC1 ACL permitirá o tráfego de retorno para PC1.
+
+                        Há muitos fatores a serem considerados ao aplicar uma ACL, incluindo:
+
+                        O dispositivo para aplicá-lo em
+                        A interface para aplicá-lo em
+                        A direção para aplicá-lo
+                        Deve ser tomada uma consideração cuidadosa para evitar resultados indesejados de filtragem. A ACL Permit-PC1 é aplicada de entrada e a ACL REPLY-PC1 aplicada de saída na interface R1 G0/0/0.
+
+                        R1(config)# ip access-list extended PERMIT-PC1
+                        R1(config-ext-nacl)# Remark Permit PC1 TCP access to internet 
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 20
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 21
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 22
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 23
+                        R1(config-ext-nacl)# permit udp host 192.168.10.10 any eq 53
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 53
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 80
+                        R1(config-ext-nacl)# permit tcp host 192.168.10.10 any eq 443
+                        R1(config-ext-nacl)# deny ip 192.168.10.0 0.0.0.255 any 
+                        R1(config-ext-nacl)# exit
+                        R1(config)# 
+                        R1(config)# ip access-list extended REPLY-PC1
+                        R1(config-ext-nacl)# Remark Only permit returning traffic to PC1 
+                        R1(config-ext-nacl)# permit tcp any host 192.168.10.10 established
+                        R1(config-ext-nacl)# exit
+                        R1(config)# interface g0/0/0
+                        R1(config-if)# ip access-group PERMIT-PC1 in
+                        R1(config-if)# ip access-group REPLY-PC1 out
+                        R1(config-if)# end
+                        R1#
